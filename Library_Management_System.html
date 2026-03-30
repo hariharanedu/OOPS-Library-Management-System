@@ -1,0 +1,1140 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Library Management System (HTML + JavaScript)</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f3f3f3;
+      --panel: #ffffff;
+      --panel-2: #f8f8f8;
+      --text: #111;
+      --muted: #444;
+      --border: #2f2f2f;
+      --border-soft: #d7d7d7;
+      --shadow: 0 10px 25px rgba(0,0,0,0.08);
+      --shadow-soft: 0 6px 16px rgba(0,0,0,0.06);
+      --focus: rgba(15, 98, 254, 0.35);
+      --accent: #0f62fe;
+      --ok: #0b6b0b;
+      --ok-bg: rgba(11, 107, 11, 0.10);
+      --err: #b00020;
+      --err-bg: rgba(176, 0, 32, 0.10);
+      --table-zebra: #fafafa;
+      --table-hover: #f1f5ff;
+    }
+
+    html[data-theme="dark"] {
+      color-scheme: dark;
+      --bg: #0f1115;
+      --panel: #151922;
+      --panel-2: #111520;
+      --text: #e8eaf0;
+      --muted: #b9bdc9;
+      --border: #353b4a;
+      --border-soft: #2a2f3c;
+      --shadow: 0 10px 25px rgba(0,0,0,0.45);
+      --shadow-soft: 0 6px 16px rgba(0,0,0,0.35);
+      --focus: rgba(110, 168, 255, 0.35);
+      --accent: #6ea8ff;
+      --ok: #63d471;
+      --ok-bg: rgba(99, 212, 113, 0.14);
+      --err: #ff6b81;
+      --err-bg: rgba(255, 107, 129, 0.16);
+      --table-zebra: rgba(255,255,255,0.03);
+      --table-hover: rgba(110, 168, 255, 0.10);
+    }
+
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+    }
+    .container { max-width: 1180px; margin: 0 auto; padding: 20px; }
+    .layout { display: grid; grid-template-columns: 1.6fr 1fr; gap: 12px; align-items: start; }
+    @media (max-width: 980px) { .layout { grid-template-columns: 1fr; } }
+
+    .box { border: 1px solid var(--border); border-radius: 14px; padding: 14px; margin: 12px 0; background: var(--panel); box-shadow: var(--shadow-soft); }
+    .box-title { font-weight: 700; margin: 0 0 10px; }
+    .row { display: grid; grid-template-columns: 160px 1fr; gap: 10px; align-items: center; margin: 8px 0; }
+    label { font-weight: 600; }
+    input, select {
+      padding: 10px 12px;
+      font-size: 14px;
+      width: 100%;
+      box-sizing: border-box;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      color: var(--text);
+      outline: none;
+      transition: box-shadow 120ms ease, border-color 120ms ease, transform 120ms ease;
+    }
+    input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 4px var(--focus); }
+    button {
+      padding: 10px 12px;
+      font-size: 14px;
+      cursor: pointer;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--panel-2);
+      color: var(--text);
+      transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
+    }
+    button:hover { transform: translateY(-1px); box-shadow: var(--shadow-soft); }
+    button:active { transform: translateY(0px); }
+    button:focus-visible {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 4px var(--focus);
+      outline: none;
+    }
+    .btn-ghost { background: transparent; }
+    .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    html[data-theme="dark"] .btn-primary { color: #0b1020; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+    .muted { color: var(--muted); }
+    .error { color: var(--err); font-weight: 700; }
+    .ok { color: var(--ok); font-weight: 700; }
+
+    #status.box { box-shadow: var(--shadow); }
+    #status.box.error { border-color: var(--err); background: var(--err-bg); }
+    #status.box.ok { border-color: var(--ok); background: var(--ok-bg); }
+
+    .status-line { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    .status-close { padding: 6px 10px; font-size: 12px; border-radius: 999px; }
+
+    .table-wrap { overflow-x: auto; max-width: 100%; -webkit-overflow-scrolling: touch; }
+    .table-wrap:focus-visible { outline: none; box-shadow: 0 0 0 4px var(--focus); border-radius: 12px; }
+    @media (max-width: 700px) { .table-wrap table { min-width: 700px; } }
+
+    table { border-collapse: separate; border-spacing: 0; width: 100%; margin-top: 10px; overflow: hidden; border-radius: 12px; }
+    th, td { border-bottom: 1px solid var(--border-soft); padding: 10px 10px; text-align: left; }
+    th { background: var(--panel-2); position: sticky; top: 0; z-index: 1; }
+    tbody tr:nth-child(even) td { background: var(--table-zebra); }
+    tbody tr:hover td { background: var(--table-hover); }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .topbar { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+    .topbar h1 { font-size: 18px; margin: 0; }
+    .top-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    .pill { display: inline-block; padding: 3px 10px; border: 1px solid var(--border); border-radius: 999px; font-size: 12px; background: var(--panel); }
+    .hr { height: 1px; background: var(--border); margin: 10px 0; opacity: 0.6; }
+
+    .oop-panel { position: sticky; top: 20px; }
+    @media (max-width: 980px) { .oop-panel { position: static; } }
+    .oop-diagram { display: grid; gap: 10px; }
+    .oop-node { border: 1px solid var(--border); border-radius: 14px; padding: 10px; opacity: 0.86; transform: translateY(0); transition: opacity 160ms ease, transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease; background: var(--panel); }
+    .oop-node.active { opacity: 1; transform: translateY(-1px); border-color: var(--accent); box-shadow: var(--shadow); }
+    .oop-node .title { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+    .oop-node .badge { border: 1px solid var(--border); border-radius: 999px; padding: 1px 8px; font-size: 12px; background: var(--panel-2); }
+    .oop-code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; line-height: 1.35; white-space: pre-wrap; word-break: break-word; }
+    .oop-steps { border-top: 1px solid var(--border); margin-top: 10px; padding-top: 10px; max-height: 360px; overflow: auto; }
+    .oop-step { padding: 8px 0; border-bottom: 1px solid var(--border-soft); animation: stepIn 180ms ease; }
+    .oop-step:last-child { border-bottom: none; }
+    @keyframes stepIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="topbar">
+      <h1>Library Management System (HTML + JavaScript)</h1>
+      <div class="top-actions">
+        <span class="pill mono">Array storage + linear search</span>
+        <button id="themeToggle" class="btn-ghost mono" type="button" aria-label="Toggle theme">Theme</button>
+      </div>
+    </div>
+    <div class="muted">Visual simulation of the C++ console project for OOP and algorithm explanation.</div>
+
+    <div id="status" class="box" style="display:none" role="status" aria-live="polite" aria-atomic="true"></div>
+
+    <div class="layout">
+      <div>
+        <div id="view"></div>
+      </div>
+
+      <aside class="oop-panel">
+        <div class="box">
+          <div class="box-title">OOP Flow (Visualizer)</div>
+          <div class="muted">Shows which “object” handles each action, step-by-step.</div>
+
+          <div class="hr"></div>
+
+          <div class="oop-diagram">
+            <div id="oopNodeLibrary" class="oop-node">
+              <div class="title">
+                <div class="mono">class Library</div>
+                <div class="badge mono">core</div>
+              </div>
+              <div class="muted">Books: <span id="oopBooksCount" class="mono">-</span> | Users: <span id="oopUsersCount" class="mono">-</span></div>
+              <div class="oop-code">methods: findBook(id), findUser(roll), addBook(id, qty), removeBook(id, qty), issue(user, book), acceptReturn(user)</div>
+            </div>
+
+            <div id="oopNodeBook" class="oop-node">
+              <div class="title">
+                <div class="mono">class Book</div>
+                <div class="badge mono">entity</div>
+              </div>
+              <div class="muted">Active: <span id="oopActiveBook" class="mono">-</span></div>
+              <div class="oop-code">fields: id, title, quantity\nmethods: isAvailable(), addCopies(q), takeOne(), returnOne()</div>
+            </div>
+
+            <div id="oopNodeUser" class="oop-node">
+              <div class="title">
+                <div class="mono">class User</div>
+                <div class="badge mono">student/teacher</div>
+              </div>
+              <div class="muted">Active: <span id="oopActiveUser" class="mono">-</span></div>
+              <div class="oop-code">fields: name, rollNo, hasBook, dueDate\nmethods: login(), borrow(bookId, date), return(date), renew()</div>
+            </div>
+          </div>
+
+          <div class="hr"></div>
+
+          <div class="muted">Last action: <span id="oopAction" class="mono">-</span></div>
+          <div id="oopSteps" class="oop-steps"></div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+<script>
+(() => {
+  // ---------------- Theme (offline toggle) ----------------
+  const theme = (() => {
+    const storageKey = 'lms_theme';
+    const root = document.documentElement;
+
+    function apply(next) {
+      if (next === 'dark') root.dataset.theme = 'dark';
+      else delete root.dataset.theme;
+      try { localStorage.setItem(storageKey, next); } catch (_) {}
+      syncLabel();
+    }
+
+    function current() {
+      return root.dataset.theme === 'dark' ? 'dark' : 'light';
+    }
+
+    function syncLabel() {
+      const btn = document.getElementById('themeToggle');
+      if (!btn) return;
+      btn.textContent = current() === 'dark' ? 'Light' : 'Dark';
+    }
+
+    function init() {
+      let initial = 'light';
+      try {
+        const stored = localStorage.getItem(storageKey);
+        if (stored === 'dark' || stored === 'light') initial = stored;
+      } catch (_) {}
+      apply(initial);
+
+      const btn = document.getElementById('themeToggle');
+      if (btn) {
+        btn.onclick = () => apply(current() === 'dark' ? 'light' : 'dark');
+      }
+    }
+
+    return { init, apply };
+  })();
+
+  // ---------------- Data Models (array-based) ----------------
+  const MAX_BOOKS = 100;
+  const MAX_USERS = 100;
+
+  const state = {
+    books: [
+      { id: 1, title: 'C++', quantity: 5 },
+      { id: 2, title: 'DSA', quantity: 3 },
+      { id: 3, title: 'OS', quantity: 4 },
+    ],
+    users: [], // { name, rollNo, isTeacher, hasBook, bookId, issueDate:{d,m,y}, dueDate:{d,m,y} }
+    session: {
+      role: 'none', // 'none' | 'admin' | 'student' | 'teacher'
+      userIndex: -1,
+    },
+    ADMIN_PASSWORD: 'admin123',
+  };
+
+  let statusHideTimer = null;
+
+  function showStatus(kind, message) {
+    const el = document.getElementById('status');
+    const isError = kind === 'error';
+
+    if (statusHideTimer) {
+      clearTimeout(statusHideTimer);
+      statusHideTimer = null;
+    }
+
+    el.style.display = 'block';
+    el.className = 'box ' + (isError ? 'error' : kind === 'ok' ? 'ok' : '');
+    el.setAttribute('role', isError ? 'alert' : 'status');
+    el.setAttribute('aria-live', isError ? 'assertive' : 'polite');
+
+    const toneClass = isError ? 'error' : kind === 'ok' ? 'ok' : 'muted';
+    el.innerHTML = `
+      <div class="status-line">
+        <div class="${toneClass}">${escapeHtml(message)}</div>
+        <button type="button" class="status-close btn-ghost mono" aria-label="Close message">Close</button>
+      </div>
+    `.trim();
+
+    const closeBtn = el.querySelector('.status-close');
+    if (closeBtn) closeBtn.onclick = () => clearStatus();
+
+    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+    // Auto-hide (keeps UI clean during demo)
+    statusHideTimer = setTimeout(() => clearStatus(), 4000);
+  }
+
+  function clearStatus() {
+    const el = document.getElementById('status');
+    if (statusHideTimer) {
+      clearTimeout(statusHideTimer);
+      statusHideTimer = null;
+    }
+    el.style.display = 'none';
+    el.className = 'box';
+    el.textContent = '';
+  }
+
+  function escapeHtml(s) {
+    return String(s)
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;');
+  }
+
+  // ---------------- OOP Flow Visualizer ----------------
+  const oop = (() => {
+    const actionEl = document.getElementById('oopAction');
+    const stepsEl = document.getElementById('oopSteps');
+
+    const nodes = {
+      Library: document.getElementById('oopNodeLibrary'),
+      Book: document.getElementById('oopNodeBook'),
+      User: document.getElementById('oopNodeUser'),
+    };
+
+    const booksCountEl = document.getElementById('oopBooksCount');
+    const usersCountEl = document.getElementById('oopUsersCount');
+    const activeBookEl = document.getElementById('oopActiveBook');
+    const activeUserEl = document.getElementById('oopActiveUser');
+
+    let playToken = 0;
+
+    function setActive(target) {
+      for (const key of Object.keys(nodes)) nodes[key].classList.remove('active');
+      if (nodes[target]) nodes[target].classList.add('active');
+    }
+
+    function clearSteps() {
+      stepsEl.innerHTML = '';
+    }
+
+    function addStep({ target, method, detail }) {
+      const div = document.createElement('div');
+      div.className = 'oop-step';
+      div.innerHTML = `
+        <div class="mono">${escapeHtml(target)}.${escapeHtml(method)}()</div>
+        <div class="muted">${escapeHtml(detail || '')}</div>
+      `.trim();
+      stepsEl.prepend(div);
+    }
+
+    function sleep(ms) {
+      return new Promise(r => setTimeout(r, ms));
+    }
+
+    function syncSummary({ activeUser, activeBook } = {}) {
+      booksCountEl.textContent = String(state.books.length);
+      usersCountEl.textContent = String(state.users.length);
+      activeBookEl.textContent = activeBook ?? '-';
+      activeUserEl.textContent = activeUser ?? '-';
+    }
+
+    async function play(actionName, steps, summary) {
+      const token = ++playToken;
+      actionEl.textContent = actionName;
+      clearSteps();
+      syncSummary(summary);
+      setActive('Library');
+
+      for (const step of steps) {
+        if (token !== playToken) return;
+        setActive(step.target);
+        addStep(step);
+        // keep it subtle: quick paced, non-blocking for UI
+        await sleep(260);
+      }
+
+      // end highlight on Library for a “completed” feel
+      setActive('Library');
+    }
+
+    function note(actionName, steps, summary) {
+      // fire-and-forget animation; UI continues instantly
+      play(actionName, steps, summary).catch(() => {});
+    }
+
+    // Initial render
+    syncSummary();
+    setActive('Library');
+
+    return { syncSummary, note };
+  })();
+
+  // ---------------- Date Logic (manual calendar) ----------------
+  function isLeap(y) {
+    return (y % 4 === 0 && y % 100 !== 0) || (y % 400 === 0);
+  }
+
+  function monthDays(m, y) {
+    const days = [31,28,31,30,31,30,31,31,30,31,30,31];
+    if (m === 2 && isLeap(y)) return 29;
+    return days[m - 1] ?? 0;
+  }
+
+  function validateDate(d, m, y) {
+    if (!Number.isInteger(d) || !Number.isInteger(m) || !Number.isInteger(y)) {
+      return { ok: false, reason: 'Date must be numbers.' };
+    }
+    if (y < 1000 || y > 9999) return { ok: false, reason: 'Year must be 4 digits (1000–9999).' };
+    if (m < 1 || m > 12) return { ok: false, reason: 'Month must be between 1 and 12.' };
+    const md = monthDays(m, y);
+    if (d < 1 || d > md) return { ok: false, reason: `Day must be between 1 and ${md} for this month.` };
+    return { ok: true, reason: '' };
+  }
+
+  function parseDateInput(input) {
+    const raw = String(input ?? '').trim();
+    if (!raw) return { ok: false, reason: 'Date is required. Use format: DD MM YYYY.' };
+    if (!/^\d{1,2}\s+\d{1,2}\s+\d{4}$/.test(raw)) {
+      return { ok: false, reason: 'Invalid date format. Use: DD MM YYYY (example: 11 12 2026).' };
+    }
+    const parts = raw.split(/\s+/);
+    const d = Number(parts[0]);
+    const m = Number(parts[1]);
+    const y = Number(parts[2]);
+    const validated = validateDate(d, m, y);
+    if (!validated.ok) return { ok: false, reason: validated.reason };
+    return { ok: true, date: { d, m, y } };
+  }
+
+  function dateToDays({ d, m, y }) {
+    // Similar to your C++ logic: count days since year 0.
+    let total = d;
+    for (let yy = 0; yy < y; yy++) total += isLeap(yy) ? 366 : 365;
+    for (let mm = 1; mm < m; mm++) total += monthDays(mm, y);
+    return total;
+  }
+
+  function addDays(dateObj, add) {
+    let { d, m, y } = dateObj;
+    d += add;
+    while (d > monthDays(m, y)) {
+      d -= monthDays(m, y);
+      m++;
+      if (m > 12) { m = 1; y++; }
+    }
+    return { d, m, y };
+  }
+
+  function fmtDate({ d, m, y }) {
+    const dd = String(d).padStart(2, '0');
+    const mm = String(m).padStart(2, '0');
+    const yy = String(y).padStart(4, '0');
+    return `${dd}/${mm}/${yy}`;
+  }
+
+  // ---------------- Searches (linear) ----------------
+  function findBookIndex(id) {
+    for (let i = 0; i < state.books.length; i++) if (state.books[i].id === id) return i;
+    return -1;
+  }
+
+  function findUserIndex(rollNo) {
+    for (let i = 0; i < state.users.length; i++) if (state.users[i].rollNo === rollNo) return i;
+    return -1;
+  }
+
+  function isBookIssued(bookId) {
+    for (const u of state.users) {
+      if (u.hasBook && u.bookId === bookId) return true;
+    }
+    return false;
+  }
+
+  function isValidPersonName(name) {
+    const s = String(name).trim();
+    if (!s) return false;
+    let hasLetter = false;
+    for (const ch of s) {
+      const isAZ = (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z');
+      if (isAZ) { hasLetter = true; continue; }
+      if (ch === ' ' || ch === '.' || ch === '-') continue;
+      return false; // rejects digits and other symbols
+    }
+    return hasLetter;
+  }
+
+  function loanDaysForRole(role) {
+    return role === 'teacher' ? 14 : 7;
+  }
+
+  function labelUser(u) {
+    if (!u) return '-';
+    const roleName = u.isTeacher ? 'Teacher' : 'Student';
+    return `${u.name} (${roleName} • Roll ${u.rollNo})`;
+  }
+
+  function labelBookById(bookId) {
+    const idx = findBookIndex(bookId);
+    if (idx === -1) return `#${bookId}`;
+    const b = state.books[idx];
+    return `#${b.id} ${b.title}`;
+  }
+
+  // ---------------- Rendering ----------------
+  const view = document.getElementById('view');
+
+  function setView(html) {
+    view.innerHTML = html;
+    const u = state.session.userIndex >= 0 ? state.users[state.session.userIndex] : null;
+    oop.syncSummary({
+      activeUser: state.session.role === 'admin' ? 'Admin' : u ? labelUser(u) : '-',
+      activeBook: u && u.hasBook ? labelBookById(u.bookId) : '-',
+    });
+  }
+
+  function renderBooksTable() {
+    const rows = state.books.map(b => `
+      <tr>
+        <td class="mono">${b.id}</td>
+        <td>${escapeHtml(b.title)}</td>
+        <td class="mono">${b.quantity}</td>
+      </tr>
+    `).join('');
+
+    return `
+      <div class="table-wrap" tabindex="0" aria-label="Books table">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:120px">ID</th>
+              <th>Title</th>
+              <th style="width:120px">Qty</th>
+            </tr>
+          </thead>
+          <tbody>${rows || '<tr><td colspan="3">No books</td></tr>'}</tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  function renderRecordsTable() {
+    const rows = state.users.map(u => {
+      const role = u.isTeacher ? 'Teacher' : 'Student';
+      const due = u.hasBook ? fmtDate(u.dueDate) : '-';
+      const bookId = u.hasBook ? String(u.bookId) : '-';
+      const status = u.hasBook ? 'Issued' : 'No Book';
+      return `
+        <tr>
+          <td>${escapeHtml(u.name)}</td>
+          <td class="mono">${u.rollNo}</td>
+          <td>${role}</td>
+          <td class="mono">${bookId}</td>
+          <td class="mono">${due}</td>
+          <td>${status}</td>
+        </tr>
+      `;
+    }).join('');
+
+    return `
+      <div class="table-wrap" tabindex="0" aria-label="User records table">
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th style="width:120px">Roll</th>
+              <th style="width:120px">Role</th>
+              <th style="width:120px">BookID</th>
+              <th style="width:150px">Due Date</th>
+              <th style="width:140px">Status</th>
+            </tr>
+          </thead>
+          <tbody>${rows || '<tr><td colspan="6">No users yet</td></tr>'}</tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  // ---------------- Views ----------------
+  function renderMainMenu() {
+    clearStatus();
+    state.session = { role: 'none', userIndex: -1 };
+
+    const menu = [
+      '+--------------------------------------------+',
+      '| LIBRARY MANAGEMENT SYSTEM                  |',
+      '+--------------------------------------------+',
+      '| 1. Admin Login                             |',
+      '| 2. Student Login                           |',
+      '| 3. Teacher Login                           |',
+      '| 0. Exit                                    |',
+      '+--------------------------------------------+',
+    ].join('\n');
+
+    setView(`
+      <div class="box">
+        <pre class="mono">${menu}</pre>
+
+        <div class="row">
+          <label for="mainChoice">Choice</label>
+          <input id="mainChoice" class="mono" type="number" min="0" max="3" placeholder="Enter choice" />
+        </div>
+        <div class="actions">
+          <button id="mainEnter">Enter</button>
+        </div>
+      </div>
+
+      <div class="box">
+        <div class="box-title">Books (Inventory)</div>
+        ${renderBooksTable()}
+      </div>
+    `);
+
+    const choiceEl = document.getElementById('mainChoice');
+    const enter = () => {
+      const raw = String(choiceEl.value ?? '').trim();
+      const choice = Number.parseInt(raw, 10);
+      if (!Number.isFinite(choice)) return showStatus('error', 'Enter a valid choice number (0-3).');
+
+      if (choice === 1) return renderAdminLogin();
+      if (choice === 2) return renderUserLogin('student');
+      if (choice === 3) return renderUserLogin('teacher');
+      if (choice === 0) return showStatus('ok', 'This is a static page. You can just close the tab.');
+      return showStatus('error', 'Invalid choice. Please enter 0, 1, 2, or 3.');
+    };
+
+    document.getElementById('mainEnter').onclick = enter;
+    choiceEl.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') enter();
+    });
+    choiceEl.focus();
+  }
+
+  function renderAdminLogin() {
+    clearStatus();
+    setView(`
+      <div class="box">
+        <div class="box-title mono">+--------------------------------------------+</div>
+        <div class="box-title mono">| ADMIN LOGIN                                |</div>
+        <div class="box-title mono">+--------------------------------------------+</div>
+
+        <div class="row">
+          <label for="adminPass">Password</label>
+          <input id="adminPass" type="password" placeholder="Enter admin password" />
+        </div>
+
+        <div class="actions">
+          <button id="adminLogin">Login</button>
+          <button id="back">Back</button>
+        </div>
+        <div class="muted">For assignment demo only.</div>
+      </div>
+    `);
+
+    document.getElementById('back').onclick = renderMainMenu;
+    document.getElementById('adminLogin').onclick = () => {
+      const pass = document.getElementById('adminPass').value;
+      if (pass !== state.ADMIN_PASSWORD) {
+        showStatus('error', 'Wrong password.');
+        return;
+      }
+      state.session.role = 'admin';
+      oop.note(
+        'Admin Login',
+        [
+          { target: 'Library', method: 'validateAdminPassword', detail: 'Check password for admin access' },
+          { target: 'Library', method: 'createSession', detail: 'Set session role = admin' },
+          { target: 'Library', method: 'renderAdminPanel', detail: 'Load admin menu and book management tools' },
+        ],
+        { activeUser: 'Admin', activeBook: '-' },
+      );
+      renderAdminPanel();
+    };
+
+    document.getElementById('adminPass').focus();
+  }
+
+  function renderAdminPanel() {
+    clearStatus();
+
+    const menu = [
+      '+--------------------------------------------+',
+      '| ADMIN PANEL                                |',
+      '+--------------------------------------------+',
+      '| 1. View Books                              |',
+      '| 2. Add Book / Update Quantity              |',
+      '| 3. Delete Book / Reduce Quantity           |',
+      '| 4. View User Records                       |',
+      '| 0. Logout                                  |',
+      '+--------------------------------------------+',
+    ].join('\n');
+
+    setView(`
+      <div class="box">
+        <pre class="mono">${menu}</pre>
+
+        <div class="row">
+          <label for="adminChoice">Choice</label>
+          <input id="adminChoice" class="mono" type="number" min="0" max="4" placeholder="Enter choice" />
+        </div>
+        <div class="actions">
+          <button id="adminEnter">Enter</button>
+        </div>
+      </div>
+
+      <div id="adminContent" class="box"></div>
+    `);
+
+    const adminContent = document.getElementById('adminContent');
+
+    function showBooks() {
+      adminContent.innerHTML = `<div class="box-title">Books</div>${renderBooksTable()}`;
+    }
+
+    function showAddUpdate() {
+      adminContent.innerHTML = `
+        <div class="box-title">Add Book / Update Quantity</div>
+        <div class="row"><label for="bId">Book ID</label><input id="bId" type="number" min="1" /></div>
+        <div class="row"><label for="bTitle">Title</label><input id="bTitle" type="text" placeholder="Only required for new ID" /></div>
+        <div class="row"><label for="bQty">Quantity</label><input id="bQty" type="number" min="1" /></div>
+        <div class="actions"><button id="save">Save</button></div>
+        <div class="muted">If ID exists: quantity is added. If new: title+qty are stored.</div>
+      `;
+      document.getElementById('save').onclick = () => {
+        const id = Number(document.getElementById('bId').value);
+        const qty = Number(document.getElementById('bQty').value);
+        const title = String(document.getElementById('bTitle').value ?? '').trim();
+
+        if (!Number.isInteger(id) || id <= 0) return showStatus('error', 'Book ID must be a positive number.');
+        if (!Number.isInteger(qty) || qty <= 0) return showStatus('error', 'Quantity must be a positive number.');
+
+        const idx = findBookIndex(id);
+        if (idx !== -1) {
+          state.books[idx].quantity += qty;
+          oop.note(
+            'Update Quantity',
+            [
+              { target: 'Library', method: 'findBookIndex', detail: `Linear search for BookID ${id}` },
+              { target: 'Book', method: 'addStock', detail: `quantity += ${qty}` },
+              { target: 'Library', method: 'renderBooks', detail: 'Refresh the Books table' },
+            ],
+            { activeUser: 'Admin', activeBook: labelBookById(id) },
+          );
+          showStatus('ok', 'Updated quantity successfully.');
+          showBooks();
+          return;
+        }
+
+        if (state.books.length >= MAX_BOOKS) return showStatus('error', 'Book storage full.');
+        if (!title) return showStatus('error', 'Title is required for a new book ID.');
+
+        state.books.push({ id, title, quantity: qty });
+        oop.note(
+          'Add Book',
+          [
+            { target: 'Library', method: 'findBookIndex', detail: `Confirm BookID ${id} is new` },
+            { target: 'Book', method: 'constructor', detail: `Create Book(id=${id}, title=${title}, qty=${qty})` },
+            { target: 'Library', method: 'addBook', detail: 'Store in books[]' },
+            { target: 'Library', method: 'renderBooks', detail: 'Refresh the Books table' },
+          ],
+          { activeUser: 'Admin', activeBook: labelBookById(id) },
+        );
+        showStatus('ok', 'Book added successfully.');
+        showBooks();
+      };
+    }
+
+    function showDeleteReduce() {
+      adminContent.innerHTML = `
+        <div class="box-title">Delete Book / Reduce Quantity</div>
+        <div class="row"><label for="dId">Book ID</label><input id="dId" type="number" min="1" /></div>
+        <div class="row"><label for="dQty">Remove Qty</label><input id="dQty" type="number" min="1" /></div>
+        <div class="actions"><button id="remove">Remove</button></div>
+        <div class="muted">If removing all available copies while issued copies exist, record is kept with qty 0.</div>
+      `;
+
+      document.getElementById('remove').onclick = () => {
+        const id = Number(document.getElementById('dId').value);
+        const qty = Number(document.getElementById('dQty').value);
+        if (!Number.isInteger(id) || id <= 0) return showStatus('error', 'Book ID must be a positive number.');
+        if (!Number.isInteger(qty) || qty <= 0) return showStatus('error', 'Quantity must be a positive number.');
+
+        const idx = findBookIndex(id);
+        if (idx === -1) return showStatus('error', 'Book not found.');
+
+        const bookLabel = labelBookById(id);
+
+        const cur = state.books[idx].quantity;
+        if (qty > cur) return showStatus('error', 'Invalid quantity (more than available).');
+
+        if (qty === cur) {
+          if (isBookIssued(id)) {
+            state.books[idx].quantity = 0;
+            oop.note(
+              'Remove Copies',
+              [
+                { target: 'Library', method: 'findBookIndex', detail: `Linear search for BookID ${id}` },
+                { target: 'Book', method: 'removeAllAvailable', detail: 'Set quantity = 0 (issued copies exist)' },
+                { target: 'Library', method: 'renderBooks', detail: 'Refresh the Books table' },
+              ],
+              { activeUser: 'Admin', activeBook: bookLabel },
+            );
+            showStatus('ok', 'All available copies removed. Record kept (issued copies exist).');
+          } else {
+            state.books.splice(idx, 1);
+            oop.note(
+              'Delete Book',
+              [
+                { target: 'Library', method: 'findBookIndex', detail: `Linear search for BookID ${id}` },
+                { target: 'Library', method: 'deleteBook', detail: 'Remove from books[]' },
+                { target: 'Library', method: 'renderBooks', detail: 'Refresh the Books table' },
+              ],
+              { activeUser: 'Admin', activeBook: bookLabel },
+            );
+            showStatus('ok', 'Book removed successfully.');
+          }
+          showBooks();
+          return;
+        }
+
+        state.books[idx].quantity -= qty;
+        oop.note(
+          'Reduce Quantity',
+          [
+            { target: 'Library', method: 'findBookIndex', detail: `Linear search for BookID ${id}` },
+            { target: 'Book', method: 'removeStock', detail: `quantity -= ${qty}` },
+            { target: 'Library', method: 'renderBooks', detail: 'Refresh the Books table' },
+          ],
+          { activeUser: 'Admin', activeBook: bookLabel },
+        );
+        showStatus('ok', 'Quantity reduced successfully.');
+        showBooks();
+      };
+    }
+
+    function showRecords() {
+      adminContent.innerHTML = `<div class="box-title">User Records</div>${renderRecordsTable()}`;
+    }
+
+    const choiceEl = document.getElementById('adminChoice');
+    const enter = () => {
+      const raw = String(choiceEl.value ?? '').trim();
+      const choice = Number.parseInt(raw, 10);
+      if (!Number.isFinite(choice)) return showStatus('error', 'Enter a valid choice number (0-4).');
+
+      if (choice === 1) return showBooks();
+      if (choice === 2) return showAddUpdate();
+      if (choice === 3) return showDeleteReduce();
+      if (choice === 4) return showRecords();
+      if (choice === 0) return renderMainMenu();
+      return showStatus('error', 'Invalid choice. Please enter 0, 1, 2, 3, or 4.');
+    };
+
+    document.getElementById('adminEnter').onclick = enter;
+    choiceEl.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') enter();
+    });
+    choiceEl.focus();
+
+    showBooks();
+  }
+
+  function renderUserLogin(role) {
+    clearStatus();
+    const header = role === 'teacher' ? 'TEACHER LOGIN' : 'STUDENT LOGIN';
+
+    setView(`
+      <div class="box">
+        <div class="box-title mono">+--------------------------------------------+</div>
+        <div class="box-title mono">| ${header.padEnd(42, ' ')}|</div>
+        <div class="box-title mono">+--------------------------------------------+</div>
+
+        <div class="row">
+          <label for="roll">Roll No</label>
+          <input id="roll" type="number" min="1" placeholder="e.g., 302" />
+        </div>
+        <div class="row">
+          <label for="name">Full Name</label>
+          <input id="name" type="text" placeholder="Letters only (spaces, '.' and '-' allowed)" />
+        </div>
+
+        <div class="actions">
+          <button id="login">Login</button>
+          <button id="back">Back</button>
+        </div>
+      </div>
+    `);
+
+    document.getElementById('back').onclick = renderMainMenu;
+    document.getElementById('login').onclick = () => {
+      const rollNo = Number(document.getElementById('roll').value);
+      const name = String(document.getElementById('name').value ?? '').trim();
+
+      if (!Number.isInteger(rollNo) || rollNo <= 0) return showStatus('error', 'Roll number must be a positive number.');
+      if (!name) return showStatus('error', 'Name cannot be empty.');
+      if (!isValidPersonName(name)) return showStatus('error', "Name must contain letters only (spaces, '.' and '-' allowed).");
+
+      const teacherRole = role === 'teacher';
+      let uIndex = findUserIndex(rollNo);
+      let created = false;
+
+      if (uIndex !== -1 && state.users[uIndex].name !== name) {
+        return showStatus('error', `Roll number belongs to another name (${state.users[uIndex].name}).`);
+      }
+      if (uIndex !== -1 && state.users[uIndex].isTeacher !== teacherRole) {
+        return showStatus('error', `This roll is registered as a ${state.users[uIndex].isTeacher ? 'Teacher' : 'Student'}.`);
+      }
+
+      if (uIndex === -1) {
+        if (state.users.length >= MAX_USERS) return showStatus('error', 'User storage full.');
+        state.users.push({
+          name,
+          rollNo,
+          isTeacher: teacherRole,
+          hasBook: false,
+          bookId: -1,
+          issueDate: null,
+          dueDate: null,
+        });
+        uIndex = state.users.length - 1;
+        created = true;
+      }
+
+      state.session.role = role;
+      state.session.userIndex = uIndex;
+      oop.note(
+        'User Login',
+        [
+          { target: 'Library', method: 'validateInput', detail: 'Validate roll number and name' },
+          { target: 'Library', method: 'findUserIndex', detail: `Linear search for Roll ${rollNo}` },
+          { target: 'User', method: created ? 'constructor' : 'load', detail: 'Create or reuse a user record' },
+          { target: 'Library', method: 'createSession', detail: `Set active user (role = ${role})` },
+          { target: 'Library', method: 'renderUserPanel', detail: 'Load borrow/return/renew menu' },
+        ],
+        { activeUser: labelUser(state.users[uIndex]), activeBook: '-' },
+      );
+      renderUserPanel();
+    };
+
+    document.getElementById('roll').focus();
+  }
+
+  function renderUserPanel() {
+    clearStatus();
+    const u = state.users[state.session.userIndex];
+    const roleName = u.isTeacher ? 'Teacher' : 'Student';
+
+    const menu = [
+      '+--------------------------------------------+',
+      '| USER PANEL                                 |',
+      '+--------------------------------------------+',
+      '| 1. View Books                              |',
+      '| 2. Borrow                                  |',
+      '| 3. Return                                  |',
+      '| 4. Renew                                   |',
+      '| 0. Logout                                  |',
+      '+--------------------------------------------+',
+    ].join('\n');
+
+    setView(`
+      <div class="box">
+        <pre class="mono">${menu}</pre>
+
+        <div class="muted">Logged in as: <b>${escapeHtml(u.name)}</b> (Roll <span class="mono">${u.rollNo}</span>)</div>
+        <div class="muted">Role: <b>${roleName}</b> (loan ${loanDaysForRole(state.session.role)} days)</div>
+
+        <div class="hr"></div>
+
+        <div class="row">
+          <label for="userChoice">Choice</label>
+          <input id="userChoice" class="mono" type="number" min="0" max="4" placeholder="Enter choice" />
+        </div>
+        <div class="actions">
+          <button id="userEnter">Enter</button>
+        </div>
+      </div>
+
+      <div id="userContent" class="box"></div>
+    `);
+
+    const userContent = document.getElementById('userContent');
+
+    function showBooks() {
+      userContent.innerHTML = `<div class="box-title">Books</div>${renderBooksTable()}`;
+    }
+
+    function showBorrow() {
+      if (u.hasBook) {
+        userContent.innerHTML = `<div class="box-title">Borrow</div><div class="error">Already has a book (BookID ${u.bookId}).</div>`;
+        return;
+      }
+      userContent.innerHTML = `
+        <div class="box-title">Borrow Book</div>
+        <div class="row"><label for="bookId">Book ID</label><input id="bookId" type="number" min="1" /></div>
+        <div class="row"><label for="bDate">Borrow Date (DD MM YYYY)</label><input id="bDate" class="mono" type="text" placeholder="11 12 2026" /></div>
+        <div class="actions"><button id="doBorrow">Borrow</button></div>
+      `;
+      document.getElementById('doBorrow').onclick = () => {
+        const bookId = Number(document.getElementById('bookId').value);
+        if (!Number.isInteger(bookId) || bookId <= 0) return showStatus('error', 'Book ID must be a positive number.');
+
+        const idx = findBookIndex(bookId);
+        if (idx === -1 || state.books[idx].quantity === 0) return showStatus('error', 'Book not available.');
+
+        const parsedDate = parseDateInput(document.getElementById('bDate').value);
+        if (!parsedDate.ok) return showStatus('error', parsedDate.reason);
+        const { d, m, y } = parsedDate.date;
+
+        u.issueDate = { d, m, y };
+        u.dueDate = addDays(u.issueDate, loanDaysForRole(state.session.role));
+        u.bookId = bookId;
+        u.hasBook = true;
+        state.books[idx].quantity -= 1;
+
+        oop.note(
+          'Borrow',
+          [
+            { target: 'Library', method: 'findBookIndex', detail: `Linear search for BookID ${bookId}` },
+            { target: 'Book', method: 'isAvailable', detail: 'quantity > 0' },
+            { target: 'User', method: 'issue', detail: `Set issueDate and dueDate (+${loanDaysForRole(state.session.role)} days)` },
+            { target: 'Book', method: 'decrementQuantity', detail: 'quantity--' },
+            { target: 'Library', method: 'saveTransaction', detail: 'Update records (in-memory)' },
+          ],
+          { activeUser: labelUser(u), activeBook: labelBookById(bookId) },
+        );
+
+        showStatus('ok', `Borrowed successfully. Due Date: ${fmtDate(u.dueDate)}`);
+        showBooks();
+      };
+    }
+
+    function showReturn() {
+      if (!u.hasBook) {
+        userContent.innerHTML = `<div class="box-title">Return</div><div class="muted">No book issued.</div>`;
+        return;
+      }
+      userContent.innerHTML = `
+        <div class="box-title">Return Book</div>
+        <div class="muted">Current BookID: <span class="mono">${u.bookId}</span></div>
+        <div class="muted">Issue Date: <span class="mono">${fmtDate(u.issueDate)}</span></div>
+        <div class="muted">Due Date: <span class="mono">${fmtDate(u.dueDate)}</span></div>
+        <div class="row"><label for="rDate">Return Date (DD MM YYYY)</label><input id="rDate" class="mono" type="text" placeholder="25 03 2026" /></div>
+        <div class="actions"><button id="doReturn">Return</button></div>
+      `;
+
+      document.getElementById('doReturn').onclick = () => {
+        const parsedDate = parseDateInput(document.getElementById('rDate').value);
+        if (!parsedDate.ok) return showStatus('error', parsedDate.reason);
+
+        const returnDate = parsedDate.date;
+        if (dateToDays(returnDate) < dateToDays(u.issueDate)) {
+          return showStatus('error', 'Invalid return date (before issue date).');
+        }
+
+        const late = dateToDays(returnDate) - dateToDays(u.dueDate);
+        const fine = late > 0 ? late * 5 : 0;
+
+        const returnedBookId = u.bookId;
+
+        const bIdx = findBookIndex(u.bookId);
+        if (bIdx !== -1) state.books[bIdx].quantity += 1;
+
+        u.hasBook = false;
+        u.bookId = -1;
+        u.issueDate = null;
+        u.dueDate = null;
+
+        oop.note(
+          'Return',
+          [
+            { target: 'Library', method: 'findBookIndex', detail: `Lookup BookID ${returnedBookId}` },
+            { target: 'User', method: 'calculateFine', detail: fine > 0 ? `Late by ${late} day(s) → fine ₹${fine}` : 'On-time → no fine' },
+            { target: 'Book', method: 'incrementQuantity', detail: 'quantity++ (if book record exists)' },
+            { target: 'User', method: 'clearLoan', detail: 'Clear bookId/issueDate/dueDate' },
+            { target: 'Library', method: 'saveTransaction', detail: 'Update records (in-memory)' },
+          ],
+          { activeUser: labelUser(u), activeBook: labelBookById(returnedBookId) },
+        );
+
+        showStatus('ok', fine > 0 ? `Returned successfully. Fine: ₹${fine}` : 'Returned successfully. No fine.');
+        showBooks();
+      };
+    }
+
+    function showRenew() {
+      if (!u.hasBook) {
+        userContent.innerHTML = `<div class="box-title">Renew</div><div class="muted">No book issued.</div>`;
+        return;
+      }
+      const newDue = addDays(u.dueDate, loanDaysForRole(state.session.role));
+      userContent.innerHTML = `
+        <div class="box-title">Renew Book</div>
+        <div class="muted">Current Due Date: <span class="mono">${fmtDate(u.dueDate)}</span></div>
+        <div class="muted">New Due Date: <span class="mono">${fmtDate(newDue)}</span></div>
+        <div class="actions"><button id="doRenew">Renew</button></div>
+      `;
+      document.getElementById('doRenew').onclick = () => {
+        u.dueDate = addDays(u.dueDate, loanDaysForRole(state.session.role));
+        oop.note(
+          'Renew',
+          [
+            { target: 'User', method: 'extendDueDate', detail: `Add ${loanDaysForRole(state.session.role)} days` },
+            { target: 'Library', method: 'saveTransaction', detail: 'Update records (in-memory)' },
+          ],
+          { activeUser: labelUser(u), activeBook: labelBookById(u.bookId) },
+        );
+        showStatus('ok', `Renewed successfully. New Due Date: ${fmtDate(u.dueDate)}`);
+        showBooks();
+      };
+    }
+
+    const choiceEl = document.getElementById('userChoice');
+    const enter = () => {
+      const raw = String(choiceEl.value ?? '').trim();
+      const choice = Number.parseInt(raw, 10);
+      if (!Number.isFinite(choice)) return showStatus('error', 'Enter a valid choice number (0-4).');
+
+      if (choice === 1) return showBooks();
+      if (choice === 2) return showBorrow();
+      if (choice === 3) return showReturn();
+      if (choice === 4) return showRenew();
+      if (choice === 0) return renderMainMenu();
+      return showStatus('error', 'Invalid choice. Please enter 0, 1, 2, 3, or 4.');
+    };
+
+    document.getElementById('userEnter').onclick = enter;
+    choiceEl.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') enter();
+    });
+    choiceEl.focus();
+
+    showBooks();
+  }
+
+  // Start
+  theme.init();
+  renderMainMenu();
+})();
+</script>
+</body>
+</html>
